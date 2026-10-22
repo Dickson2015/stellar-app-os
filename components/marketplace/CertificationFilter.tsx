@@ -103,7 +103,7 @@ export function CertificationFilter({
           value={verificationState ?? ''}
           onChange={(event) =>
             onVerificationStateChange?.(
-              (event.target.value || null) as CertificationVerificationState | null,
+              (event.target.value || null) as CertificationVerificationState | null
             )
           }
           aria-label="Filter by certification verification state"
@@ -119,4 +119,3 @@ export function CertificationFilter({
     </div>
   );
 }
-</｜｜DSML｜｜ parameter>
