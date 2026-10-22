@@ -10,6 +10,11 @@ export const metadata: Metadata = {
 
 const publicApiLinks = [
   {
+    href: '/developer',
+    label: 'Developer Portal & Sandbox',
+    description: 'OAuth2 authentication, interactive API sandbox, and live testing for trees, projects, species, and CO2 stats.',
+  },
+  {
     href: '/api-docs/v1',
     label: 'Public API v1 Reference',
     description: 'Versioned REST API for third-party integrations: tree data, sponsorships, and webhooks.',
