@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Leaf, ShieldAlert, Sprout, HeartHandshake } from 'lucide-react';
 import { getPool } from '@/lib/db/client';
-import { getSpeciesEducation, scientificNameFor } from '@/lib/species/education';
+import { getSpeciesPageData, scientificNameFor, speciesPathForSlug } from '@/lib/species/education';
 import {
   categoryLabel,
   iucnRecordUrl,
@@ -12,8 +12,9 @@ import {
   type IucnCategoryCode,
   type PopulationTrend,
 } from '@/lib/species/conservation';
-import { TREE_SPECIES } from '@/lib/constants/species';
 import { SpeciesConservationPanel } from '@/components/organisms/SpeciesEducation/SpeciesConservationPanel';
+
+export const revalidate = 3600;
 
 interface SpeciesPageProps {
   params: Promise<{ slug: string }>;
@@ -61,25 +62,23 @@ async function loadConservationStatus(slug: string): Promise<CachedStatus | null
 
 export async function generateMetadata({ params }: SpeciesPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const education = getSpeciesEducation(slug);
-  if (!education) return { title: 'Species not found' };
+  const data = getSpeciesPageData(slug);
+  if (!data) return { title: 'Species not found' };
 
   return {
-    title: `${education.commonName} (${education.scientificName}) — Conservation & Planting Guide`,
-    description: `${education.overview} Learn about the conservation status of ${education.commonName} and how sponsored plantings support it.`,
+    title: `${data.info.name} (${data.education.scientificName}) — Conservation & Planting Guide`,
+    description: `${data.education.summary} Learn about the conservation status of ${data.info.name} and how sponsored plantings support it.`,
     alternates: { canonical: speciesEducationPath(slug) },
   };
 }
 
 export default async function SpeciesEducationPage({ params }: SpeciesPageProps) {
   const { slug } = await params;
-  const education = getSpeciesEducation(slug);
-  if (!education) notFound();
+  const data = getSpeciesPageData(slug);
+  if (!data) notFound();
+  const { info, education, isNative } = data;
 
-  const [status, sponsored] = await Promise.all([
-    loadConservationStatus(slug),
-    Promise.resolve(TREE_SPECIES.some((entry) => entry.slug === slug)),
-  ]);
+  const status = await loadConservationStatus(slug);
 
   const conservationStatus = status
     ? {
@@ -98,17 +97,17 @@ export default async function SpeciesEducationPage({ params }: SpeciesPageProps)
     {
       icon: Sprout,
       label: 'Est. CO₂ per year',
-      value: `${education.species.co2KgPerYear} kg`,
+      value: `${info.co2KgPerYear} kg`,
     },
     {
       icon: Leaf,
       label: 'Years to maturity',
-      value: `${education.species.maturityYears} years`,
+      value: `${info.maturityYears} years`,
     },
     {
       icon: HeartHandshake,
       label: 'Available to sponsor',
-      value: sponsored ? 'Yes' : 'Not currently',
+      value: 'Yes',
     },
   ];
 
@@ -120,18 +119,38 @@ export default async function SpeciesEducationPage({ params }: SpeciesPageProps)
             Home
           </Link>
           <span aria-hidden="true"> / </span>
-          <span className="text-foreground">{education.commonName}</span>
+          <span className="text-foreground">{info.name}</span>
         </nav>
 
         <header className="mb-6 space-y-2">
           <p className="text-sm font-medium uppercase tracking-wide text-stellar-green">
             Species guide
           </p>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{education.commonName}</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{info.name}</h1>
           <p className="text-base italic text-muted-foreground">{education.scientificName}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+            {education.summary}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-sm">
+            <span
+              className="rounded-full border border-border px-3 py-1"
+              data-testid="conservation-status"
+            >
+              Conservation status: {education.conservationStatus}
+            </span>
+            {isNative ? (
+              <span className="rounded-full border border-border px-3 py-1">Native species</span>
+            ) : null}
+            <Link
+              href={speciesPathForSlug(slug, true)}
+              className="rounded-full bg-stellar-blue px-3 py-1 text-white hover:opacity-90"
+            >
+              Kid-friendly version
+            </Link>
+          </div>
         </header>
 
-        <SpeciesConservationPanel status={conservationStatus} commonName={education.commonName} />
+        <SpeciesConservationPanel status={conservationStatus} commonName={info.name} />
 
         <dl className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
           {facts.map((fact) => (
@@ -151,7 +170,7 @@ export default async function SpeciesEducationPage({ params }: SpeciesPageProps)
               About this species
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-              {education.overview}
+              {education.summary}
             </p>
           </section>
 
@@ -161,8 +180,29 @@ export default async function SpeciesEducationPage({ params }: SpeciesPageProps)
               Ecological role
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-              {education.ecologicalRole}
+              {education.ecology}
             </p>
+          </section>
+
+          <section aria-labelledby="culture-heading">
+            <h2 id="culture-heading" className="mb-2 text-lg font-semibold">
+              Cultural significance
+            </h2>
+            <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+              {education.culturalSignificance}
+            </p>
+          </section>
+
+          <section aria-labelledby="threats-heading">
+            <h2 id="threats-heading" className="mb-2 flex items-center gap-2 text-lg font-semibold">
+              <ShieldAlert className="size-5 text-stellar-green" aria-hidden="true" />
+              Threats
+            </h2>
+            <ul className="list-disc space-y-1 pl-6 text-sm text-muted-foreground sm:text-base">
+              {education.threats.map((threat) => (
+                <li key={threat}>{threat}</li>
+              ))}
+            </ul>
           </section>
 
           <section aria-labelledby="conservation-heading">
@@ -184,32 +224,30 @@ export default async function SpeciesEducationPage({ params }: SpeciesPageProps)
             </p>
           </section>
 
-          <section aria-labelledby="stewardship-heading">
-            <h2
-              id="stewardship-heading"
-              className="mb-2 flex items-center gap-2 text-lg font-semibold"
-            >
-              <Sprout className="size-5 text-stellar-green" aria-hidden="true" />
-              Growing &amp; stewardship
+          <section aria-labelledby="facts-heading">
+            <h2 id="facts-heading" className="mb-2 text-lg font-semibold">
+              Fun facts
             </h2>
-            <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-              {education.stewardship}
-            </p>
+            <ul className="list-disc space-y-1 pl-6 text-sm text-muted-foreground sm:text-base">
+              {education.funFacts.map((fact) => (
+                <li key={fact}>{fact}</li>
+              ))}
+            </ul>
           </section>
         </div>
 
         <div className="mt-8 rounded-xl border border-border bg-background p-5">
           <h2 className="text-base font-semibold">Sponsor this species</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sponsoring a {education.commonName} tree funds a planter to grow and care for it, with
-            photo and GPS updates through to maturity.
+            Sponsoring a {info.name} tree funds a planter to grow and care for it, with photo and
+            GPS updates through to maturity.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
               href="/planting-locations"
               className="rounded-lg bg-stellar-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
             >
-              Sponsor a {education.commonName} tree
+              Sponsor a {info.name} tree
             </Link>
             <Link
               href="/dashboard/trees"

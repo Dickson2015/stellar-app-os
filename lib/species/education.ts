@@ -1,251 +1,497 @@
 /**
- * Educational content for the species pages linked from conservation alerts —
- * Issue #1657.
+ * Educational content for each tree species — Issue #1681.
  *
- * Alerts link to `/species/[slug]`, which renders this content alongside the
- * live IUCN assessment cached by the quarterly checker. Copy is written to be
- * accurate about ecology and planting practice; IUCN categories are never
- * hard-coded here because they change — always read them from
- * `species_iucn_status`.
+ * One entry per slug in `TREE_SPECIES`. Each entry carries the adult version
+ * (ecology, cultural significance, threats, conservation status, fun facts)
+ * plus a short kid-friendly version for school programmes.
  */
-
 import { TREE_SPECIES, type SpeciesInfo } from '@/lib/constants/species';
+import { isNativeSpecies } from '@/lib/native-species';
 
-/**
- * Scientific names for the catalogue species. Kept here rather than in
- * `lib/constants/species` so the education pages stay self-contained; the
- * authoritative source for IUCN lookups remains `species_catalogue`.
- */
-export const SPECIES_SCIENTIFIC_NAMES: Record<string, string> = {
-  teak: 'Tectona grandis',
-  moringa: 'Moringa oleifera',
-  eucalyptus: 'Eucalyptus globulus',
-  mangrove: 'Rhizophora mucronata',
-  acacia: 'Vachellia nilotica',
-  neem: 'Azadirachta indica',
-  mahogany: 'Khaya senegalensis',
-  baobab: 'Adansonia digitata',
-  bamboo: 'Phyllostachys edulis',
-  cedar: 'Cedrela odorata',
-  pine: 'Pinus caribaea',
-  iroko: 'Milicia excelsa',
-  shea: 'Vitellaria paradoxa',
-  cashew: 'Anacardium occidentale',
-  locust_bean: 'Parkia biglobosa',
-};
+export type ConservationStatus =
+  'Least Concern' | 'Near Threatened' | 'Vulnerable' | 'Endangered' | 'Not Evaluated';
 
-export function scientificNameFor(slug: string): string {
-  return SPECIES_SCIENTIFIC_NAMES[slug] ?? slug;
+export interface KidsContent {
+  headline: string;
+  intro: string;
+  funFacts: string[];
+  activity: string;
 }
 
 export interface SpeciesEducation {
   slug: string;
-  commonName: string;
   scientificName: string;
-  /** One-paragraph overview of the species and why it is planted. */
-  overview: string;
-  /** How the species contributes to the ecosystem it is planted in. */
-  ecologicalRole: string;
-  /** What sponsors should know about threats and recovery work. */
+  summary: string;
+  ecology: string;
+  culturalSignificance: string;
+  threats: string[];
+  conservationStatus: ConservationStatus;
   conservationNote: string;
-  /** Practical planting/harvesting notes for the sponsor audience. */
-  stewardship: string;
+  funFacts: string[];
+  kids: KidsContent;
 }
 
-const EDUCATION: Record<
-  string,
-  Omit<SpeciesEducation, 'slug' | 'commonName' | 'scientificName'>
-> = {
-  teak: {
-    overview:
-      'Teak is a large deciduous hardwood prized for its weather-resistant timber. Slow-growing and long-lived, a single teak tree can sequester carbon for many decades while providing high-value timber that lets smallholders earn from a standing tree rather than clearing forest.',
-    ecologicalRole:
-      'Mature teak develops a broad canopy that shades soil, reduces erosion on sloping farmland and provides nesting sites for cavity-dwelling birds. Leaf litter builds soil organic matter on degraded agricultural land.',
+export const SPECIES_EDUCATION: readonly SpeciesEducation[] = [
+  {
+    slug: 'teak',
+    scientificName: 'Tectona grandis',
+    summary: 'A tall, durable hardwood prized worldwide for timber that resists rot and insects.',
+    ecology:
+      'Teak is a deciduous tropical hardwood that sheds its leaves in the dry season, building rich leaf litter that feeds the soil. It thrives in deep, well-drained soils and, once established, shades out much of the undergrowth.',
+    culturalSignificance:
+      'Teak has built ships, temples and furniture across South and Southeast Asia for centuries, and is a symbol of lasting quality in craftsmanship.',
+    threats: [
+      'Illegal logging of old-growth stands',
+      'Monoculture plantations that reduce biodiversity',
+      'Teak defoliator insects',
+    ],
+    conservationStatus: 'Endangered',
     conservationNote:
-      'Wild teak populations have declined through logging and habitat conversion, so plantation stock is essential to take pressure off natural forests. Sourcing seed from documented provenance keeps wild stands recoverable.',
-    stewardship:
-      'Teak reaches commercial maturity in roughly 20 years. It thrives in tropical and subtropical climates with a distinct dry season and responds well to thinning.',
+      'Natural teak forests are listed as Endangered; plantation teak is widespread and relieves pressure on wild stands when sustainably managed.',
+    funFacts: [
+      'Teak wood contains natural oils that make it water-resistant, which is why it is used on boat decks.',
+      'Some teak trees live for more than 100 years.',
+    ],
+    kids: {
+      headline: 'Teak: the tree that never gets soggy!',
+      intro:
+        'Teak is a giant tree with oily wood. The oil keeps water out, so teak boats and benches last a very long time.',
+      funFacts: [
+        'Teak leaves can be as big as a dinner tray.',
+        'Boat builders love teak because it does not rot easily.',
+      ],
+      activity: 'Rub a wet and a dry leaf with your finger — which one feels waxier?',
+    },
   },
-  moringa: {
-    overview:
-      'Moringa is a fast-growing multipurpose tree whose leaves, pods and seeds are all usable. It is planted across the tropics for food, fodder and soil improvement, and reaches maturity in as little as three years.',
-    ecologicalRole:
-      'Its deep roots bring subsoil nutrients to the surface, and its nitrogen-rich leaves make excellent green mulch. Windbreak plantings of moringa shelter neighbouring crops and livestock.',
+  {
+    slug: 'moringa',
+    scientificName: 'Moringa oleifera',
+    summary:
+      'A fast-growing, drought-tolerant tree whose leaves, pods and seeds are highly nutritious.',
+    ecology:
+      'Moringa grows quickly in poor, dry soils and tolerates drought, making it a pioneer species for degraded land. Its flowers feed bees and other pollinators, and its roots help hold soil in place.',
+    culturalSignificance:
+      'Known as the "miracle tree", moringa leaves are eaten across Africa and South Asia and used in traditional medicine. Seeds are also used to clarify drinking water.',
+    threats: [
+      'Frost in cooler regions',
+      'Waterlogged soils that cause root rot',
+      'Pod-borer pests',
+    ],
+    conservationStatus: 'Least Concern',
+    conservationNote: 'Widely cultivated and not considered threatened.',
+    funFacts: [
+      'A moringa tree can grow up to 3 metres in its first year.',
+      'Crushed moringa seeds can help make muddy water clearer.',
+    ],
+    kids: {
+      headline: 'Moringa: the superfood tree!',
+      intro:
+        'Moringa grows super fast and its leaves are packed with vitamins. People call it the miracle tree.',
+      funFacts: [
+        'It can grow taller than you in a single year.',
+        'Its long skinny pods are nicknamed drumsticks.',
+      ],
+      activity: 'Measure a seedling each week and plot how fast it grows.',
+    },
+  },
+  {
+    slug: 'eucalyptus',
+    scientificName: 'Eucalyptus spp.',
+    summary: 'A fast-growing evergreen from Australia, grown for timber, pulp and shelter belts.',
+    ecology:
+      'Eucalypts grow rapidly and pull large quantities of carbon from the air. They use a lot of water, so careful siting matters. Their flowers provide nectar for bees and birds.',
+    culturalSignificance:
+      'In Australia eucalypts (gum trees) are woven into Aboriginal culture and landscape. Elsewhere they are valued as a quick source of fuelwood and poles.',
+    threats: [
+      'High water use can lower local water tables',
+      'Can crowd out native species when planted outside its range',
+      'Wildfire, as the leaves hold flammable oils',
+    ],
+    conservationStatus: 'Not Evaluated',
     conservationNote:
-      'Moringa is cultivated widely and is not considered threatened, but genetic diversity in farmed stands is narrowing as a handful of clones dominate planting programmes.',
-    stewardship:
-      'Moringa tolerates arid conditions and poor soils. Regular pruning keeps the canopy productive and makes leaf harvest easier.',
+      'Hundreds of species exist, most of them Least Concern; a few Australian species are threatened. FarmCredit limits its use under the native-species policy.',
+    funFacts: [
+      'Koalas eat the leaves of just a handful of eucalyptus species.',
+      'Some eucalypts shed their bark in long ribbons every year.',
+    ],
+    kids: {
+      headline: 'Eucalyptus: the peeling, minty tree',
+      intro: 'Eucalyptus leaves smell like mint and its bark peels off in long strips.',
+      funFacts: [
+        'Koalas munch eucalyptus leaves for dinner.',
+        'It is one of the fastest-growing trees on Earth.',
+      ],
+      activity: 'Crush a leaf (with permission!) and describe its smell in three words.',
+    },
   },
-  eucalyptus: {
-    overview:
-      'Eucalyptus is a fast-growing genus planted worldwide for timber, fibre and firewood. Several species reach harvestable size within a decade, making them a common choice for community woodlots.',
-    ecologicalRole:
-      'Eucalyptus stabilises degraded hillsides and produces shelterbelt cover quickly. Its flowers are a major nectar source for bees and other pollinators.',
+  {
+    slug: 'mangrove',
+    scientificName: 'Rhizophora spp.',
+    summary: 'Salt-tolerant coastal trees that shield shorelines and nurture marine life.',
+    ecology:
+      'Mangroves grow where land meets sea, with tangled prop roots that slow waves and trap sediment. Their roots are nurseries for fish, crabs and prawns, and mangrove soils store several times more carbon than most upland forests.',
+    culturalSignificance:
+      'Coastal communities rely on mangroves for fish, honey, fuelwood and storm protection, and many fishing traditions are tied to the mangrove forest.',
+    threats: [
+      'Clearing for shrimp farms and development',
+      'Sea-level rise and altered tides',
+      'Pollution and oil spills',
+    ],
+    conservationStatus: 'Vulnerable',
     conservationNote:
-      'Many eucalyptus species are of least concern, though some restricted-range endemics are threatened. Monoculture plantings can displace native vegetation, so mixed planting is preferred on restoration sites.',
-    stewardship:
-      'Eucalyptus grows in tropical, subtropical and temperate zones. It is thirsty relative to most species, so avoid planting it near waterways or in water-scarce catchments.',
+      'Roughly one in six mangrove species is threatened with extinction, and a large share of global mangrove cover has been lost since 1980.',
+    funFacts: [
+      'Mangroves can filter salt from sea water through their roots.',
+      'Some mangrove seeds sprout while still on the parent tree.',
+    ],
+    kids: {
+      headline: 'Mangrove: the tree that stands in the sea',
+      intro:
+        'Mangrove trees live with their feet in salty water! Their roots are a safe home for baby fish.',
+      funFacts: [
+        'Mangrove roots look like stilts holding the tree up.',
+        'They protect beaches from big waves.',
+      ],
+      activity: 'Build a model shoreline with sticks as roots and see how they slow "waves".',
+    },
   },
-  mangrove: {
-    overview:
-      'Mangroves are salt-tolerant trees of tropical and subtropical coastlines. Planted along shorelines, they trap sediment, buffer storm surge and store carbon in their soils at rates far above most terrestrial forests.',
-    ecologicalRole:
-      'Mangrove roots form nursery habitat for fish, crabs and shrimp, and roosting structure for coastal birds. A healthy fringe can reduce wave energy reaching the shore by a large margin.',
+  {
+    slug: 'acacia',
+    scientificName: 'Acacia senegal',
+    summary: 'A hardy dryland tree that fixes nitrogen and produces gum arabic.',
+    ecology:
+      'Acacias fix nitrogen in the soil, which helps neighbouring crops. Deep roots reach water far below the surface, so they thrive in the Sahel, and their thorny canopies shelter livestock and wildlife.',
+    culturalSignificance:
+      'Gum arabic harvested from acacia bark is a traditional income source across the Sahel and an ingredient in food, medicine and art materials.',
+    threats: [
+      'Overgrazing of seedlings',
+      'Drought and desertification',
+      'Overharvesting for fuelwood',
+    ],
+    conservationStatus: 'Least Concern',
     conservationNote:
-      'Mangroves are among the most threatened ecosystems on earth, lost mainly to aquaculture, coastal development and fuelwood cutting. Every hectare restored reopens a fishery nursery and rebuilds a carbon sink.',
-    stewardship:
-      'Planting must match species to tidal zone and salinity. Survival depends on getting the inundation regime right, so sites are surveyed before planting.',
+      'Common across its range, but local populations decline where land is degraded.',
+    funFacts: [
+      'Acacia gum is used in fizzy drinks and sweets.',
+      'Some acacias host ants that defend the tree from browsing animals.',
+    ],
+    kids: {
+      headline: 'Acacia: the thorny helper',
+      intro: 'Acacia trees have sharp thorns and make the soil healthier for other plants.',
+      funFacts: [
+        'Giraffes nibble acacia leaves with their long tongues.',
+        'Acacia sap is used to make sweets!',
+      ],
+      activity: 'Draw a food web that starts with an acacia tree.',
+    },
   },
-  acacia: {
-    overview:
-      'Acacia is a hardy leguminous tree of African and Australian savannas. It is planted for soil fertility, fodder, charcoal and shade, and establishes quickly even on degraded land.',
-    ecologicalRole:
-      'Acacias fix atmospheric nitrogen through root nodule bacteria, fertilising the soil for neighbouring plants. Their thorny canopies give livestock and wildlife crucial shade in open savanna.',
+  {
+    slug: 'neem',
+    scientificName: 'Azadirachta indica',
+    summary: 'A drought-resistant evergreen valued for its natural pest-repelling compounds.',
+    ecology:
+      'Neem tolerates heat and poor soils and provides dense shade. Its leaves and seeds contain compounds that deter many insects, and the tree is a useful windbreak around farms.',
+    culturalSignificance:
+      'Neem is called the "village pharmacy" in South Asia, where twigs are used as toothbrushes and leaves in remedies and festivals.',
+    threats: [
+      'Frost and waterlogging',
+      'Patenting and over-harvesting of seeds',
+      'Dieback diseases',
+    ],
+    conservationStatus: 'Least Concern',
+    conservationNote: 'Widely planted and not considered threatened.',
+    funFacts: [
+      'Neem oil is used as a natural, plant-based pesticide.',
+      'A mature neem tree can cast shade over 100 square metres.',
+    ],
+    kids: {
+      headline: 'Neem: the village pharmacy tree',
+      intro: 'Neem leaves taste very bitter, which is why bugs stay away from them.',
+      funFacts: [
+        'People have used neem twigs as toothbrushes for thousands of years.',
+        'Neem trees give great shade on hot days.',
+      ],
+      activity: 'Find three ways a shady tree makes a school playground better.',
+    },
+  },
+  {
+    slug: 'mahogany',
+    scientificName: 'Khaya senegalensis',
+    summary: 'A majestic West African hardwood with rich reddish timber.',
+    ecology:
+      'African mahogany grows tall in savannah and forest edges. Its canopy supports birds and insects, and seeds are dispersed by the wind in winged capsules.',
+    culturalSignificance:
+      'Mahogany furniture and carvings are highly prized, and the tree is often left standing as a village shade tree.',
+    threats: [
+      'Selective logging for timber',
+      'Shoot-borer insects in young trees',
+      'Habitat conversion to farmland',
+    ],
+    conservationStatus: 'Vulnerable',
+    conservationNote: 'Listed as Vulnerable due to habitat loss and over-harvesting.',
+    funFacts: [
+      'Mahogany seeds spin like helicopters when they fall.',
+      'Its wood darkens to a deep red-brown with age.',
+    ],
+    kids: {
+      headline: 'Mahogany: the helicopter-seed giant',
+      intro: 'Mahogany is a very tall tree. Its seeds spin through the air like tiny helicopters.',
+      funFacts: ['The wood is a gorgeous reddish brown.', 'Birds nest high in mahogany branches.'],
+      activity: 'Make paper helicopters and see which design stays up longest.',
+    },
+  },
+  {
+    slug: 'baobab',
+    scientificName: 'Adansonia digitata',
+    summary: 'The iconic "upside-down tree" of the African savannah.',
+    ecology:
+      'Baobabs store water in their swollen trunks to survive long dry spells. Their flowers open at night for bats and moths, and hollow trunks shelter birds, bees and bats.',
+    culturalSignificance:
+      'Baobabs are meeting places, storytellers and landmarks in many African communities; the fruit and leaves are eaten and the bark is used for rope.',
+    threats: [
+      'Climate change affecting old trees',
+      'Over-harvesting of bark and fruit',
+      'Elephant damage to young trees',
+    ],
+    conservationStatus: 'Least Concern',
     conservationNote:
-      'Some acacia relatives are threatened by land conversion and unsustainable harvesting, and several species were split into new genera in recent taxonomy, complicating conservation assessments.',
-    stewardship:
-      'Acacia is well suited to arid and semi-arid zones. Coppicing after cutting extends the productive life of each planting.',
+      'Mainland baobabs are Least Concern, but several Madagascan baobab species are threatened. Many ancient African baobabs have died in recent decades.',
+    funFacts: [
+      'A baobab trunk can hold up to 120,000 litres of water.',
+      'Some baobabs are over 1,000 years old.',
+    ],
+    kids: {
+      headline: 'Baobab: the upside-down tree',
+      intro:
+        'Baobabs look as if their roots are in the sky! Their huge trunks store water for dry seasons.',
+      funFacts: [
+        'Baobab fruit is called monkey bread.',
+        'Some baobabs are older than most castles.',
+      ],
+      activity: 'Draw a baobab and label where it stores water.',
+    },
   },
-  neem: {
-    overview:
-      'Neem is a fast-growing tropical tree whose leaves, bark and seed oil have been used for centuries as natural pest control and medicine. It is one of the most widely planted utility trees in the tropics.',
-    ecologicalRole:
-      'Neem suppresses soil-borne pests and termites without synthetic chemicals, reducing pesticide pressure on neighbouring crops. Its dense evergreen canopy provides year-round shade.',
+  {
+    slug: 'bamboo',
+    scientificName: 'Phyllostachys edulis',
+    summary: 'A giant grass that grows faster than any other woody plant.',
+    ecology:
+      'Moso bamboo spreads by underground rhizomes and can grow almost a metre a day in spring. It holds steep slopes together and regrows quickly after harvest, making it a renewable carbon store.',
+    culturalSignificance:
+      'Bamboo is used for scaffolding, food, paper and instruments across Asia, and symbolises resilience and flexibility.',
+    threats: [
+      'Mass flowering followed by die-off',
+      'Spreading beyond its intended area',
+      'Conversion of bamboo forest to other crops',
+    ],
+    conservationStatus: 'Least Concern',
     conservationNote:
-      'Neem is not threatened and is planted aggressively across Africa and Asia. Its value to restoration lies in protecting other plantings from pest damage during establishment.',
-    stewardship:
-      'Neem tolerates drought and poor soils, maturing in around 10 years. It should be kept clear of waterways, where its leaf litter can slow flow.',
+      'Widespread and managed commercially; some wild bamboo species are threatened.',
+    funFacts: [
+      'Bamboo is technically a grass, not a tree.',
+      'Some bamboo species flower only once every 60 to 120 years.',
+    ],
+    kids: {
+      headline: 'Bamboo: the speedy giant grass',
+      intro: 'Bamboo is a grass that can grow as tall as a building — and fast enough to watch!',
+      funFacts: [
+        'Pandas eat bamboo for breakfast, lunch and dinner.',
+        'It can grow nearly a metre in a single day.',
+      ],
+      activity: 'Put a marker next to a plant and check how much it grew each day.',
+    },
   },
-  mahogany: {
-    overview:
-      'African mahogany (Khaya) is a large canopy tree of West and Central African forests, related to the American mahoganies. Its timber is among the most valuable in the world, which is precisely why wild populations are under pressure.',
-    ecologicalRole:
-      'As a emergent canopy tree, mahogany shapes the forest structure beneath it and produces fruit that feeds forest birds and primates. Old specimens are significant long-term carbon stores.',
-    conservationNote:
-      'African mahogany is listed as vulnerable on the IUCN Red List, driven by selective logging and conversion of its forest habitat. Planting documented, provenance-traced stock is one of the few ways to relieve pressure on the remaining wild trees.',
-    stewardship:
-      'Mahogany is slow to establish and reaches maturity in about 25 years. It needs deep, well-drained soils and a genuinely tropical climate.',
+  {
+    slug: 'cedar',
+    scientificName: 'Khaya grandifoliola',
+    summary: 'A large West African timber tree sometimes called African cedar.',
+    ecology:
+      'West African cedar grows in moist semi-deciduous forests and provides canopy cover for understory crops such as cocoa. Fruits are eaten by squirrels and birds.',
+    culturalSignificance:
+      'Its bark is used in traditional medicine, and the aromatic timber is used for doors, boats and carvings.',
+    threats: ['Overlogging', 'Forest clearing for farming', 'Seedling pests'],
+    conservationStatus: 'Vulnerable',
+    conservationNote: 'Listed as Vulnerable due to heavy exploitation of natural stands.',
+    funFacts: [
+      'Its timber has a pleasant cedar-like scent.',
+      'Bark is traditionally used to treat fevers.',
+    ],
+    kids: {
+      headline: 'West African cedar: the sweet-smelling tree',
+      intro:
+        'This forest giant smells like cedar and gives shade to farm crops growing beneath it.',
+      funFacts: [
+        'Squirrels love to eat its fruits.',
+        'Farmers plant it to protect cocoa from the sun.',
+      ],
+      activity: 'Smell different woods and describe each one.',
+    },
   },
-  baobab: {
-    overview:
-      'The baobab is an iconic long-lived tree of African savannas, storing water in its swollen trunk and producing nutrient-dense fruit. Some individuals live for more than a thousand years.',
-    ecologicalRole:
-      'Baobabs are keystone resources: their flowers feed fruit bats, their hollow trunks shelter communities of animals, and their fruit sustains wildlife and people through the dry season.',
-    conservationNote:
-      'African baobab is assessed as least concern overall, but recruitment is failing in parts of its range as savanna is converted to farmland and mature trees are harvested. Young plantings help rebuild a population that is otherwise aging in place.',
-    stewardship:
-      'Baobabs are extremely drought tolerant but slow, taking decades to reach full size. Plant them where they will have room to spread and where livestock cannot ring-bark young trunks.',
+  {
+    slug: 'pine',
+    scientificName: 'Pinus caribaea',
+    summary: 'A fast-growing conifer used for timber and watershed restoration.',
+    ecology:
+      'Caribbean pine tolerates poor, acidic soils and periodic fires. Its needles form a thick litter that suppresses weeds but acidifies soil over time.',
+    culturalSignificance:
+      'Pine resin and timber support rural livelihoods across Central America and the Caribbean.',
+    threats: ['Pine bark beetles', 'Uncontrolled wildfire', 'Monoculture plantations'],
+    conservationStatus: 'Least Concern',
+    conservationNote: 'Common in its native range; used widely in plantations.',
+    funFacts: [
+      'Pine cones open to release seeds when it is dry.',
+      'Pine needles stay on the tree for around two to three years.',
+    ],
+    kids: {
+      headline: 'Caribbean pine: the cone-bearing tree',
+      intro: 'Pine trees keep their needles all year and grow seeds inside woody cones.',
+      funFacts: ['Pine cones open and close with the weather.', 'Pine sap is sticky like glue.'],
+      activity: 'Collect cones and see which ones are open or closed after a rainy day.',
+    },
   },
-  bamboo: {
-    overview:
-      'Moso bamboo is a giant grass planted for timber, fibre and shoot production. It grows faster than any tree, can be harvested sustainably for decades without replanting, and builds biomass rapidly.',
-    ecologicalRole:
-      'Bamboo stands hold soil on steep slopes, filter runoff and provide continuous canopy cover. Because culms can be selectively harvested, the stand keeps sequestering carbon while producing yield.',
-    conservationNote:
-      'Moso bamboo is not threatened in cultivation, but wild stands are shrinking where land is converted. Well-managed plantations reduce the incentive to harvest from natural forests.',
-    stewardship:
-      'Bamboo reaches harvestable size in around five years and needs ample water during establishment. Containment barriers are advisable because running rhizomes spread aggressively.',
+  {
+    slug: 'iroko',
+    scientificName: 'Milicia excelsa',
+    summary: 'A revered West African forest giant and a hard, termite-resistant timber.',
+    ecology:
+      'Iroko is a long-lived emergent tree that towers above the forest canopy. Its figs and seeds feed hornbills and monkeys, which in turn spread its seeds.',
+    culturalSignificance:
+      'In many West African traditions iroko is a sacred tree believed to house spirits, and it is often protected in village groves.',
+    threats: [
+      'Overharvesting for premium timber',
+      'Slow regeneration in logged forests',
+      'Forest fragmentation',
+    ],
+    conservationStatus: 'Near Threatened',
+    conservationNote: 'Classified as Near Threatened because of heavy logging pressure.',
+    funFacts: ['Iroko can live for 500 years.', 'Its wood is sometimes called African teak.'],
+    kids: {
+      headline: 'Iroko: the spirit tree',
+      intro: 'Iroko is a very tall, very old tree that many villages treat as special and protect.',
+      funFacts: ['Hornbills help spread iroko seeds.', 'It can live for centuries.'],
+      activity: 'Ask an elder about a special tree in your community.',
+    },
   },
-  cedar: {
-    overview:
-      'West African cedar (Cedrela odorata, Spanish cedar) is a valuable aromatic hardwood of seasonal tropical forest. Its lightweight, insect-resistant timber makes it prized for joinery and cigar boxes.',
-    ecologicalRole:
-      'Cedar is a canopy tree whose leaf fall enriches forest soils, and whose flowers support a range of pollinators. Mature trees are substantial carbon reservoirs.',
-    conservationNote:
-      'Spanish cedar is listed as vulnerable on the IUCN Red List. Decades of overexploitation for timber have reduced natural regeneration, and restoring planted stock is a core part of recovery.',
-    stewardship:
-      'Cedar needs a pronounced dry season and well-drained soil, maturing in around 30 years. It resprouts after cutting, which makes careful selective harvesting viable.',
+  {
+    slug: 'shea',
+    scientificName: 'Vitellaria paradoxa',
+    summary: 'A parkland tree whose nuts produce shea butter.',
+    ecology:
+      'Shea grows across the African savannah belt and takes 15 to 20 years to bear fruit. Its flowers feed bees, and farmers leave shea trees standing in their fields for the shade and soil benefits.',
+    culturalSignificance:
+      'Shea butter is known as "women\'s gold" because harvesting and processing it provides income for millions of women in West Africa.',
+    threats: [
+      'Felling for charcoal and firewood',
+      'Ageing tree stands with little regeneration',
+      'Climate change reducing fruit yield',
+    ],
+    conservationStatus: 'Vulnerable',
+    conservationNote: 'Listed as Vulnerable because of steady population decline.',
+    funFacts: [
+      'Shea butter is used in cosmetics and chocolate.',
+      'Shea trees can live for 200 years.',
+    ],
+    kids: {
+      headline: 'Shea: the butter tree',
+      intro: 'Shea nuts are crushed to make shea butter, a creamy balm used on skin and in food.',
+      funFacts: [
+        'It takes a shea tree about 20 years to start making nuts.',
+        'Lots of families earn a living from shea.',
+      ],
+      activity: 'Find the products at home that list shea butter as an ingredient.',
+    },
   },
-  pine: {
-    overview:
-      'Caribbean pine is a fast-growing conifer planted across tropical America for timber and resin. It is one of the few pines that thrives in warm, humid lowland conditions.',
-    ecologicalRole:
-      'Pine stands stabilise nutrient-poor sandy soils and rebuild cover on land abandoned after farming. Their needle litter creates a fire-adapted ground layer that excludes many weeds.',
-    conservationNote:
-      'Caribbean pine is of least concern, but its native Caribbean island populations are small and fragmented. Plantation programmes help meet timber demand that would otherwise come from those wild stands.',
-    stewardship:
-      'Pine reaches useful size in about 15 years and tolerates coastal conditions. It prefers acidic, well-drained soils and does not waterlog well.',
+  {
+    slug: 'cashew',
+    scientificName: 'Anacardium occidentale',
+    summary: 'A tropical tree that gives us cashew nuts and nutritious cashew apples.',
+    ecology:
+      'Cashew trees tolerate poor, sandy soils and offer shade for intercropping. Flowers are pollinated by insects, and the nut hangs below a fleshy cashew apple.',
+    culturalSignificance:
+      'Cashew farming supports millions of smallholders in West Africa, India and Brazil, and cashew apples are made into juices and drinks.',
+    threats: [
+      'Powdery mildew and pests',
+      'Erratic rainfall at flowering',
+      'Price swings for raw nuts',
+    ],
+    conservationStatus: 'Least Concern',
+    conservationNote: 'Widely cultivated and not considered threatened.',
+    funFacts: [
+      'The cashew nut grows outside the fruit, not inside it.',
+      'Raw cashew shells contain an irritant, so nuts are always processed before eating.',
+    ],
+    kids: {
+      headline: 'Cashew: the nut that grows outside',
+      intro: 'A cashew nut hangs from the bottom of a juicy cashew apple.',
+      funFacts: [
+        'You can drink cashew apple juice.',
+        'Cashew shells must be cooked before the nut is safe to eat.',
+      ],
+      activity: 'Draw a cashew apple with its nut hanging below it.',
+    },
   },
-  iroko: {
-    overview:
-      'Iroko is a large hardwood of West and Central African forest, sometimes called "African teak". It is long-lived, extremely durable and highly valued for construction and furniture.',
-    ecologicalRole:
-      'Iroko is a canopy tree that produces fruit eaten by hornbills and other forest fauna. Its roots mycorrhizal networks help seedlings of other species establish beneath it.',
-    conservationNote:
-      'Iroko is listed as vulnerable on the IUCN Red List. Heavy logging pressure combined with slow natural regeneration means planted trees are an important part of keeping the species in the landscape.',
-    stewardship:
-      'Iroko is slow growing, taking around 35 years to mature. It needs deep tropical soils and is sensitive to frost and prolonged waterlogging.',
+  {
+    slug: 'locust_bean',
+    scientificName: 'Parkia biglobosa',
+    summary: 'A multi-purpose savannah tree whose seeds become a prized fermented seasoning.',
+    ecology:
+      'African locust bean fixes nitrogen and provides shade and fodder. Its pink pom-pom flowers are pollinated by bats, and pods feed livestock in the dry season.',
+    culturalSignificance:
+      'Fermented seeds, called dawadawa or iru, are a staple seasoning in West African cooking, and the tree is often protected on farmland.',
+    threats: ['Felling for firewood', 'Bush fires', 'Aging populations with few young trees'],
+    conservationStatus: 'Least Concern',
+    conservationNote: 'Common in parkland farming systems, though young trees are scarce.',
+    funFacts: [
+      'Its flowers look like red pom-poms and are pollinated by bats.',
+      'Locust bean seasoning adds a rich, savoury flavour to stews.',
+    ],
+    kids: {
+      headline: 'African locust bean: the pom-pom flower tree',
+      intro:
+        'This tree has round red flowers that bats visit at night, and its seeds flavour food.',
+      funFacts: [
+        'Bats pollinate its flowers.',
+        'Its seeds are fermented to make a tasty seasoning.',
+      ],
+      activity: 'Ask a family member how they use local seasonings in cooking.',
+    },
   },
-  shea: {
-    overview:
-      'Shea is a savanna tree grown for the fat extracted from its nuts, the basis of shea butter. Trees are typically not planted but protected in farmland, making every retained tree economically valuable to its owner.',
-    ecologicalRole:
-      'Shea marks farmland across the Sahel, holding soil, shading crops during establishment and supporting pollinators. Its nuts provide a seasonal income that makes standing tree cover worth protecting.',
-    conservationNote:
-      'Shea is listed as vulnerable on the IUCN Red List, largely because young trees are not being replaced as older ones die. Protecting and planting seedlings secures a resource that millions of rural households depend on.',
-    stewardship:
-      'Shea matures in around 20 years and tolerates drought and poor soils. It should be left to flower undisturbed, as fruit set depends on healthy pollinator populations.',
-  },
-  cashew: {
-    overview:
-      'Cashew is a tropical tree grown for its edible nut and apple. It is planted widely across coastal West Africa and the tropics, often as a boundary and soil-stabilisation tree as much as a crop.',
-    ecologicalRole:
-      'Cashew windbreaks protect soils and neighbouring crops, and its flowers are a major nectar source. Its root system holds sandy coastal soils against erosion.',
-    conservationNote:
-      'Cashew is not threatened, but wild relatives of the cultivated species are increasingly rare. Maintaining genetic diversity in plantings keeps future breeding options open.',
-    stewardship:
-      'Cashew matures in about 10 years, tolerating salt spray and poor sandy soils. It prefers a distinct dry season for reliable nut set.',
-  },
-  locust_bean: {
-    overview:
-      'The African locust bean tree produces protein-rich fermented seeds used as a traditional seasoning across West Africa. It is a long-lived parkland tree that farmers protect and plant alongside crops.',
-    ecologicalRole:
-      'Locust bean fixes nitrogen and cycles nutrients from deep soil layers, raising fertility under the canopy. Its pods and foliage provide fodder, and its shade supports cocoa and coffee seedlings.',
-    conservationNote:
-      'African locust bean is listed as vulnerable on the IUCN Red List. Loss of parkland trees to agriculture and urban expansion, with little regeneration, is steadily shrinking the population.',
-    stewardship:
-      'The tree takes around 25 years to reach full production and is highly drought tolerant once established. Planting in agroforestry mixtures gives the best survival rates.',
-  },
-};
+];
 
-function fallbackEducation(
-  species: SpeciesInfo
-): Omit<SpeciesEducation, 'slug' | 'commonName' | 'scientificName'> {
-  return {
-    overview: `${species.name} is one of the species available for sponsorship on Harvesta. Sponsoring a ${species.name.toLowerCase()} tree funds a planter to grow and care for it, with photo and GPS updates through to maturity.`,
-    ecologicalRole: `A mature ${species.name.toLowerCase()} contributes canopy cover, soil stability and carbon sequestration to the site where it is planted.`,
-    conservationNote:
-      'Conservation status is published by the IUCN Red List and refreshed on this platform every quarter. When a species is newly listed or upgraded to a threatened category, sponsors are notified directly.',
-    stewardship: `Typical time to maturity for ${species.name.toLowerCase()} is ${species.maturityYears} years, at an estimated ${species.co2KgPerYear} kg of CO₂ sequestered per tree per year.`,
-  };
+const BY_SLUG = new Map(SPECIES_EDUCATION.map((entry) => [entry.slug, entry]));
+
+export function getSpeciesEducation(slug: string): SpeciesEducation | undefined {
+  return BY_SLUG.get(slug);
 }
 
-/** Looks up the educational content for a species slug (falls back to a generic page). */
-export function getSpeciesEducation(
-  slug: string
-): (SpeciesEducation & { species: SpeciesInfo }) | null {
-  const species = TREE_SPECIES.find((entry) => entry.slug === slug);
-  if (!species) return null;
-
-  const content = EDUCATION[slug] ?? fallbackEducation(species);
-  return {
-    slug: species.slug,
-    commonName: species.name,
-    scientificName: scientificNameFor(species.slug),
-    ...content,
-    species,
-  };
+export interface SpeciesPageData {
+  info: SpeciesInfo;
+  education: SpeciesEducation;
+  isNative: boolean;
 }
 
-/** Every species with educational content, for sitemap / listing pages. */
-export function listSpeciesEducation(): SpeciesEducation[] {
-  return TREE_SPECIES.map((species) => {
-    const content = EDUCATION[species.slug] ?? fallbackEducation(species);
-    return {
-      slug: species.slug,
-      commonName: species.name,
-      scientificName: scientificNameFor(species.slug),
-      ...content,
-    };
-  });
+export function getSpeciesPageData(slug: string): SpeciesPageData | undefined {
+  const info = TREE_SPECIES.find((species) => species.slug === slug);
+  const education = BY_SLUG.get(slug);
+  if (!info || !education) return undefined;
+  return { info, education, isNative: isNativeSpecies(slug) };
+}
+
+/** Resolves a species display name (e.g. "African Mahogany") to its page path. */
+export function speciesPathForName(name: string, kids = false): string | null {
+  const info = TREE_SPECIES.find((species) => species.name === name);
+  return info ? speciesPathForSlug(info.slug, kids) : null;
+}
+
+export function speciesPathForSlug(slug: string, kids = false): string {
+  return kids ? `/species/${slug}/kids` : `/species/${slug}`;
+}
+
+/**
+ * Scientific name for a species slug, used to build IUCN Red List links in
+ * conservation alerts — Issue #1657. Falls back to the slug when a species has
+ * no catalogue entry.
+ */
+export function scientificNameFor(slug: string): string {
+  return BY_SLUG.get(slug)?.scientificName ?? slug;
 }
