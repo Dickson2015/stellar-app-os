@@ -22,10 +22,7 @@ const STATUS_LABELS: Record<ProviderVerificationStatus, string> = {
   renewal_due: 'Renewal Due',
 };
 
-const STATUS_VARIANTS: Record<
-  ProviderVerificationStatus,
-  'success' | 'warning' | 'danger'
-> = {
+const STATUS_VARIANTS: Record<ProviderVerificationStatus, 'success' | 'warning' | 'danger'> = {
   verified: 'success',
   pending: 'warning',
   renewal_due: 'danger',
@@ -54,9 +51,7 @@ function buildTooltip(verification: ProviderVerification): string {
 function providerVerificationsFor(farmer: {
   providerVerifications?: ProviderVerification[];
 }): ProviderVerification[] {
-  return Array.isArray(farmer.providerVerifications)
-    ? farmer.providerVerifications
-    : [];
+  return Array.isArray(farmer.providerVerifications) ? farmer.providerVerifications : [];
 }
 
 export function FarmerCertificationBadges({ farmerId }: { farmerId: string }) {
@@ -94,4 +89,3 @@ export function FarmerCertificationBadges({ farmerId }: { farmerId: string }) {
     </div>
   );
 }
-</｜｜DSML｜｜ parameter>
