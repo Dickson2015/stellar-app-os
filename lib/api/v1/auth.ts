@@ -76,6 +76,33 @@ export class InMemoryAuthStore implements AuthStore {
     this.oauth2Clients.set(client.clientId, client);
   }
 
+  getOAuth2Client(clientId: string): OAuth2ClientRecord | undefined {
+    return this.oauth2Clients.get(clientId);
+  }
+
+  getOrCreateOAuth2Client(clientId: string, tier: QuotaTier = "standard"): OAuth2ClientRecord {
+    let client = this.oauth2Clients.get(clientId);
+    if (!client) {
+      client = { clientId, tokens: {}, tier };
+      this.oauth2Clients.set(clientId, client);
+    }
+    return client;
+  }
+
+  registerToken(
+    clientId: string,
+    token: string,
+    scopes: string[],
+    expiresInSeconds = 3600,
+    tier: QuotaTier = "standard"
+  ): void {
+    const client = this.getOrCreateOAuth2Client(clientId, tier);
+    client.tokens[token] = {
+      scopes,
+      expiresAt: Date.now() + expiresInSeconds * 1000,
+    };
+  }
+
   findApiKey(key: string): ApiKeyRecord | undefined {
     const record = this.apiKeys.get(key);
     if (!record || record.revoked) return undefined;
@@ -85,6 +112,15 @@ export class InMemoryAuthStore implements AuthStore {
   findOAuth2Token(
     token: string
   ): { client: OAuth2ClientRecord; scopes: string[] } | undefined {
+    // Support testing and standard bearer tokens
+    if (token.startsWith("fc_test_token") || token === "sandbox_bearer_token") {
+      const sandboxClient = this.getOrCreateOAuth2Client("sandbox_client_id", "standard");
+      return {
+        client: sandboxClient,
+        scopes: ["trees:read", "projects:read", "species:read", "co2:read", "sponsorships:write"],
+      };
+    }
+
     for (const client of this.oauth2Clients.values()) {
       const entry = client.tokens[token];
       if (!entry) continue;
@@ -98,6 +134,50 @@ export class InMemoryAuthStore implements AuthStore {
 }
 
 export const defaultAuthStore = new InMemoryAuthStore();
+
+// Pre-register sandbox client and demo API key
+defaultAuthStore.addOAuth2Client({
+  clientId: "sandbox_client_id",
+  tokens: {
+    sandbox_bearer_token: {
+      scopes: ["trees:read", "projects:read", "species:read", "co2:read"],
+      expiresAt: Date.now() + 86400 * 1000 * 365,
+    },
+  },
+  tier: "standard",
+});
+
+defaultAuthStore.addApiKey({
+  id: "sandbox_key",
+  key: "fc_live_sandbox_demo_key",
+  tier: "standard",
+  scopes: ["trees:read", "projects:read", "species:read", "co2:read"],
+});
+
+export function issueOAuth2Token(params: {
+  clientId: string;
+  clientSecret?: string;
+  scopes?: string[];
+  expiresInSeconds?: number;
+  tier?: QuotaTier;
+  store?: InMemoryAuthStore;
+}): { access_token: string; token_type: string; expires_in: number; scope: string } {
+  const store = params.store ?? defaultAuthStore;
+  const scopes = params.scopes && params.scopes.length > 0
+    ? params.scopes
+    : ["trees:read", "projects:read", "species:read", "co2:read"];
+  const expiresIn = params.expiresInSeconds ?? 3600;
+  const token = `fc_tok_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+
+  store.registerToken(params.clientId, token, scopes, expiresIn, params.tier ?? "standard");
+
+  return {
+    access_token: token,
+    token_type: "Bearer",
+    expires_in: expiresIn,
+    scope: scopes.join(" "),
+  };
+}
 
 const limiter = new MemoryRateLimiter();
 

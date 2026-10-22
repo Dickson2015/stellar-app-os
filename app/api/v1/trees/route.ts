@@ -70,17 +70,24 @@ export function rateLimited(headers: Record<string, string>): NextResponse {
   );
 }
 
-interface TreeRecord {
+import { getMockTrees } from '@/lib/api/mock/trees';
+
+export interface PublicTreeRecord {
   id: string;
+  treeId: string;
   species: string;
+  region: string;
+  status: string;
   plantedAt: string;
   latitude: number;
   longitude: number;
+  co2OffsetKgPerYear: number;
+  projectName: string;
   sponsored: boolean;
+  sponsorName: string | null;
+  nftTokenId: string | null;
+  nftOwner: string | null;
 }
-
-// Placeholder data source. Replace with the real persistence layer.
-const TREES: TreeRecord[] = [];
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const ctx = authenticate(req);
@@ -96,11 +103,36 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     Math.max(1, Number.parseInt(searchParams.get('per_page') ?? '20', 10) || 20),
   );
   const species = searchParams.get('species');
+  const project = searchParams.get('project');
   const sponsoredParam = searchParams.get('sponsored');
 
-  let filtered = TREES;
+  const rawTrees = getMockTrees();
+  const allTrees: PublicTreeRecord[] = rawTrees.map((t, index) => {
+    const isSponsored = Boolean(t.nftTokenId) || index % 2 === 0;
+    return {
+      id: t.id,
+      treeId: t.treeId,
+      species: t.species,
+      region: t.region,
+      status: t.status,
+      plantedAt: t.plantedAt ?? new Date(Date.now() - index * 86400000).toISOString(),
+      latitude: t.lat,
+      longitude: t.lng,
+      co2OffsetKgPerYear: t.co2OffsetKgPerYear,
+      projectName: t.projectName,
+      sponsored: isSponsored,
+      sponsorName: isSponsored ? (t.sponsorName ?? `EcoSponsor ${index + 1}`) : null,
+      nftTokenId: t.nftTokenId ?? (isSponsored ? String(index + 1) : null),
+      nftOwner: t.nftOwner ?? (isSponsored ? `G${'S'.repeat(54)}${index}` : null),
+    };
+  });
+
+  let filtered = allTrees;
   if (species) {
     filtered = filtered.filter((t) => t.species.toLowerCase() === species.toLowerCase());
+  }
+  if (project) {
+    filtered = filtered.filter((t) => t.projectName.toLowerCase().includes(project.toLowerCase()));
   }
   if (sponsoredParam === 'true' || sponsoredParam === 'false') {
     const wantSponsored = sponsoredParam === 'true';
