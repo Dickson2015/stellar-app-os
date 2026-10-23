@@ -8,6 +8,9 @@ import { ForestProtectionZone } from '@/components/organisms/ForestProtectionZon
 import { mockAdminProjectDetails } from '@/lib/api/mock/adminProjectDetails';
 import { mockCarbonProjects } from '@/lib/api/mock/carbonProjects';
 import { getMockProjectCoverage } from '@/lib/api/mock/projectCoverage';
+import { ensureDeforestationAlertsSeeded, getProjectAlerts } from '@/lib/deforestation/service';
+import { getProjectSurvivalStatistic } from '@/lib/census/survival';
+import { SurvivalRateStat } from '@/components/molecules/SurvivalRateStat';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -66,7 +69,13 @@ export default async function ProjectPage({ params }: Props) {
 
   const bufferZone = adminProject.bufferZone;
   const protectionZoneAreaHa = bufferZone?.areaHectares;
-  const hasDeforestationAlert = Boolean(bufferZone?.deforestationAlert);
+
+  // Live satellite alerts for this project's monitored zone (issue #672).
+  await ensureDeforestationAlertsSeeded();
+  const deforestationAlerts = getProjectAlerts(adminProject.id);
+  const latestAlert = deforestationAlerts[0];
+  const hasDeforestationAlert =
+    Boolean(bufferZone?.deforestationAlert) || deforestationAlerts.length > 0;
 
   return (
     <>
@@ -75,8 +84,23 @@ export default async function ProjectPage({ params }: Props) {
           role="alert"
           className="mx-auto mt-4 max-w-7xl rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
         >
-          <strong className="font-semibold">Deforestation alert:</strong> Deforestation has been
-          detected inside this project&apos;s forest protection buffer zone.
+          <strong className="font-semibold">Deforestation alert:</strong>{' '}
+          {latestAlert ? (
+            <>
+              Canopy loss of{' '}
+              {latestAlert.areaHectares > 0
+                ? `${latestAlert.areaHectares.toLocaleString()} ha `
+                : ''}
+              detected on {latestAlert.detectedOn} inside this project&apos;s forest protection
+              buffer zone (confidence: {latestAlert.confidence}). The affected area is highlighted
+              on the map below.
+            </>
+          ) : (
+            <>
+              Deforestation has been detected inside this project&apos;s forest protection buffer
+              zone.
+            </>
+          )}
         </div>
       )}
 
@@ -94,15 +118,19 @@ export default async function ProjectPage({ params }: Props) {
       />
 
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-6">
+        {/* Survival rate per project (issue #1645) */}
+        <SurvivalRateStat
+          initial={getProjectSurvivalStatistic(adminProject.id)}
+          refreshQuery={{ projectId: adminProject.id }}
+        />
+
         <ForestRegenerationSimulation
           species={adminProject.primarySpecies ?? 'Mixed Native Species'}
           climateZone={adminProject.climateZone ?? 'Tropical'}
         />
 
         {bufferZone && (
-          <ForestProtectionZone
-            bufferZone={bufferZone}
-          />
+          <ForestProtectionZone bufferZone={bufferZone} alerts={deforestationAlerts} />
         )}
       </div>
     </>
