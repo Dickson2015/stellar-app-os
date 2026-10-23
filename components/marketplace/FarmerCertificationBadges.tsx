@@ -94,4 +94,3 @@ export function FarmerCertificationBadges({ farmerId }: { farmerId: string }) {
     </div>
   );
 }
-</｜｜DSML｜｜ parameter>
