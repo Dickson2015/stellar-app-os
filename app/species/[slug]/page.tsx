@@ -3,7 +3,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Leaf, ShieldAlert, Sprout, HeartHandshake } from 'lucide-react';
 import { getPool } from '@/lib/db/client';
-import { getSpeciesPageData, scientificNameFor, speciesPathForSlug } from '@/lib/species/education';
+import { getSpeciesSurvivalStatistic } from '@/lib/census/survival';
+import {
+  SPECIES_EDUCATION,
+  getSpeciesPageData,
+  scientificNameFor,
+  speciesPathForSlug,
+} from '@/lib/species/education';
 import {
   categoryLabel,
   iucnRecordUrl,
@@ -12,12 +18,17 @@ import {
   type IucnCategoryCode,
   type PopulationTrend,
 } from '@/lib/species/conservation';
+import { SurvivalRateStat } from '@/components/molecules/SurvivalRateStat';
 import { SpeciesConservationPanel } from '@/components/organisms/SpeciesEducation/SpeciesConservationPanel';
 
 export const revalidate = 3600;
 
 interface SpeciesPageProps {
   params: Promise<{ slug: string }>;
+}
+
+export function generateStaticParams() {
+  return SPECIES_EDUCATION.map((entry) => ({ slug: entry.slug }));
 }
 
 interface CachedStatus {
@@ -183,6 +194,12 @@ export default async function SpeciesEducationPage({ params }: SpeciesPageProps)
               {education.ecology}
             </p>
           </section>
+
+          <SurvivalRateStat
+            initial={getSpeciesSurvivalStatistic({ slug, name: info.name })}
+            refreshQuery={{ speciesSlug: slug, speciesName: info.name }}
+            heading={`${info.name} survival rate`}
+          />
 
           <section aria-labelledby="culture-heading">
             <h2 id="culture-heading" className="mb-2 text-lg font-semibold">
